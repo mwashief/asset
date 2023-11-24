@@ -63,3 +63,27 @@ deleteTransaction ldi rdi =
       deleteWhere = \a b -> leftDeltaId b ==. lit ldi &&. rightDeltaId b ==. lit rdi,
       returning = NumberOfRowsAffected
     }
+
+updateTransactionLhs prev new =
+  Update
+    { target = transactionSchema,
+      from = pure (),
+      set = \from row ->
+        row
+          { leftDeltaId = lit new
+          },
+      updateWhere = \a b -> leftDeltaId b ==. lit prev,
+      returning = NumberOfRowsAffected
+    }
+
+updateTransactionRhs prev new =
+  Update
+    { target = transactionSchema,
+      from = pure (),
+      set = \from row ->
+        row
+          { rightDeltaId = lit new
+          },
+      updateWhere = \a b -> rightDeltaId b ==. lit prev,
+      returning = NumberOfRowsAffected
+    }

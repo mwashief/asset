@@ -7,13 +7,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -Wno-deprecations #-}
 
 module BuySell where
 
 import qualified Asset
 import qualified AssetDelta
 import qualified Category
+import Control.Applicative
 import Control.Monad.IO.Class
 import Data.Aeson (FromJSON (parseJSON), ToJSON, decode)
 import Data.Int
@@ -22,8 +22,10 @@ import Data.Text (Text)
 import Data.Time
 import GHC.Generics
 import Hasql.Session
+import qualified PostDeltaBody
 import Rel8
 import Transaction
+import qualified Transaction
 import Web.Scotty
 
 data DeltaBody = DeltaBody
@@ -59,7 +61,7 @@ buySellEndpoint url connection = do
           )
     json assets
 
-  get (capture $ url ++ "/:id") $ do
+  get (capture $ url ++ "asset/:id") $ do
     now <- liftIO getCurrentTime
     assetId_ <- captureParam "id" :: ActionM Int64
     timeBody <- jsonData :: ActionM TimeBody
@@ -73,6 +75,49 @@ buySellEndpoint url connection = do
           )
     json assets
 
+  get (capture $ url ++ "/:id") $ do
+    assetDeltaId_ <- captureParam "id" :: ActionM Int64
+    Right assetDelta <-
+      liftIO $
+        select_
+          ( AssetDelta.getDeltaById
+              (AssetDelta.AssetDeltaId assetDeltaId_)
+          )
+    json assetDelta
+
+  post (capture $ url ++ "/:id") $ do
+    assetDeltaId_ <- captureParam "id" :: ActionM Int64
+    let previousAssetDeltaId = AssetDelta.AssetDeltaId assetDeltaId_
+    deltaBody <- jsonData :: ActionM PostDeltaBody.PostDeltaBody
+    Right assetDeltaList <-
+      liftIO $
+        select_
+          ( AssetDelta.getDeltaById
+              (AssetDelta.AssetDeltaId assetDeltaId_)
+          )
+    let assetDelta = head assetDeltaList
+    Right newAssetDeltaIds <-
+      liftIO $
+        update_ $
+          AssetDelta.updateAssetDelta
+            previousAssetDeltaId
+            (fromMaybe (AssetDelta.date assetDelta) (PostDeltaBody.date deltaBody))
+            (fromMaybe (AssetDelta.delta assetDelta) (PostDeltaBody.delta deltaBody))
+            (PostDeltaBody.description deltaBody <|> AssetDelta.adDesc assetDelta)
+            (fromMaybe (AssetDelta.adAssetId assetDelta) (PostDeltaBody.assetId deltaBody))
+            (PostDeltaBody.categoryId deltaBody <|> AssetDelta.adCategoryId assetDelta)
+    let newAssetDeltaId = head newAssetDeltaIds
+    Right lhs <-
+      liftIO $
+        update__ $
+          updateTransactionLhs previousAssetDeltaId newAssetDeltaId
+    Right rhs <-
+      liftIO $
+        update__ $
+          updateTransactionRhs previousAssetDeltaId newAssetDeltaId
+
+    json $ (+) lhs rhs
+
   put (capture (url ++ "/delta")) $ do
     now <- liftIO getCurrentTime
     req <- jsonData :: ActionM DeltaBody
@@ -84,9 +129,11 @@ buySellEndpoint url connection = do
     req <- jsonData :: ActionM TransactionBody
     Right leftAssetId <- liftIO $ insert_ (AssetDelta.insertAssetDelta now (delta $ leftDelta req) (description $ leftDelta req) (assetId $ leftDelta req) (categoryId $ leftDelta req))
     Right rightAssetId <- liftIO $ insert_ (AssetDelta.insertAssetDelta now (delta $ rightDelta req) (description $ rightDelta req) (assetId $ rightDelta req) (categoryId $ rightDelta req))
-    Right tnx <- liftIO $ insert_ (insertTransaction (head leftAssetId) (head rightAssetId))
+    Right tnx <- liftIO $ insert_ (Transaction.insertTransaction (head leftAssetId) (head rightAssetId))
     json tnx
   where
     select_ query = run (statement () (select query)) connection
     delete_ query = run (statement () (Rel8.delete query)) connection
     insert_ query = run (statement () (insert query)) connection
+    update_ query = run (statement () (update query)) connection
+    update__ query = run (statement () (update query)) connection

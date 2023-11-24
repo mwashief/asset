@@ -18,7 +18,6 @@ import Asset
 import AssetClass
 import AssetClassMapping
 import Category
-import Control.Applicative (Applicative (liftA2))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Functor.Apply
 import Data.Functor.Contravariant
@@ -71,6 +70,11 @@ insertAssetDelta date delta desc assetId_ categoryId_ =
       returning = Projection assetDeltaId
     }
 
+getDeltaById assetDeltaId_ = do
+  assetDelta <- each assetDeltaSchema
+  where_ $ assetDeltaId assetDelta ==. lit assetDeltaId_
+  return assetDelta
+
 getDeltasByAsset assetIdExpr startDate endDate = do
   assetDelta <- orderBy (date >$< asc) $ each assetDeltaSchema
   where_ $ adAssetId assetDelta ==. assetIdExpr &&. date assetDelta >=. lit startDate &&. date assetDelta <=. lit endDate
@@ -92,3 +96,20 @@ getDeltasByAssetClass assetClassId_ startDate endDate = do
 getSumByAsset assetIdExpr startDate endDate = aggregate do
   assetDelta <- getDeltasByAsset assetIdExpr startDate endDate
   return $ Rel8.sum (delta assetDelta)
+
+updateAssetDelta assetDeltaId_ date_ delta_ adDesc_ adAssetId_ adCategoryId_ =
+  Update
+    { target = assetDeltaSchema,
+      from = pure (),
+      set = \from row ->
+        row
+          { assetDeltaId = unsafeDefault,
+            date = lit date_,
+            delta = lit delta_,
+            adDesc = lit adDesc_,
+            adAssetId = lit adAssetId_,
+            adCategoryId = lit adCategoryId_
+          },
+      updateWhere = \a b -> assetDeltaId b ==. lit assetDeltaId_,
+      returning = Projection assetDeltaId
+    }

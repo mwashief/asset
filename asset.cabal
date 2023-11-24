@@ -43,16 +43,20 @@ executable asset
         src,
         "src/db",
         "src/db/schema",
-        "src/routes"
+        "src/routes",
+        "src/routes/assets",
+        "src/routes/buy-sell",
+        "src/routes/categories"
     other-modules:    
         Asset,
+        Assets,
         AssetClass,
         AssetClassMapping,
         AssetDelta,
         BuySell,
+        Categories,
         Category,
-        Transaction,
         DbConnection,
-        Assets,
-        Categories
+        PostDeltaBody,
+        Transaction
     default-language: Haskell2010
