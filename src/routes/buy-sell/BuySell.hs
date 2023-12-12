@@ -13,20 +13,40 @@ module BuySell where
 import qualified Asset
 import qualified AssetDelta
 import qualified Category
-import Control.Applicative
-import Control.Monad.IO.Class
+import Control.Applicative (Alternative ((<|>)))
+import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson (FromJSON (parseJSON), ToJSON, decode)
-import Data.Int
-import Data.Maybe
+import Data.Int (Int64)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Time
-import GHC.Generics
-import Hasql.Session
+  ( UTCTime (UTCTime),
+    fromGregorian,
+    getCurrentTime,
+    secondsToDiffTime,
+  )
+import GHC.Generics (Generic)
+import Hasql.Connection (Connection)
+import Hasql.Session (run, statement)
 import qualified PostDeltaBody
-import Rel8
+import Rel8 (delete, insert, lit, select, update)
 import Transaction
+  ( insertTransaction,
+    updateTransactionLhs,
+    updateTransactionRhs,
+  )
 import qualified Transaction
 import Web.Scotty
+  ( ActionM,
+    capture,
+    captureParam,
+    get,
+    json,
+    jsonData,
+    post,
+    put,
+  )
+import qualified Web.Scotty.Internal.Types
 
 data DeltaBody = DeltaBody
   { delta :: Double,
@@ -48,6 +68,7 @@ data TimeBody = TimeBody
   }
   deriving (Eq, Show, Generic, FromJSON)
 
+buySellEndpoint :: String -> Connection -> Web.Scotty.Internal.Types.ScottyT IO ()
 buySellEndpoint url connection = do
   get (capture url) $ do
     now <- liftIO getCurrentTime

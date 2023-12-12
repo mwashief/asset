@@ -12,13 +12,35 @@
 
 module AssetClassMapping where
 
-import Asset
+import Asset (Asset (assetId), AssetId, assetSchema)
 import AssetClass
+  ( AssetClass (assetClassId),
+    AssetClassId,
+    assetClassSchema,
+  )
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Int
-import Data.Text hiding (filter)
-import GHC.Generics
+import Data.Int (Int64)
+import Data.Text ()
+import GHC.Generics (Generic)
 import Rel8
+  ( Column,
+    Delete (..),
+    Expr,
+    Insert (..),
+    Name,
+    OnConflict (Abort),
+    Query,
+    Rel8able,
+    Result,
+    Returning (NumberOfRowsAffected),
+    TableSchema (..),
+    each,
+    lit,
+    values,
+    where_,
+    (&&.),
+    (==.),
+  )
 import Prelude hiding (filter, id)
 
 data AssetClassMapping f = AssetClassMapping
@@ -46,9 +68,11 @@ assetClassMappingSchema =
           }
     }
 
+allAssetClassMappings :: Query (AssetClassMapping Expr)
 allAssetClassMappings =
   each assetClassMappingSchema
 
+getAssetClassesByAsset :: Expr AssetId -> Query (AssetClass Expr)
 getAssetClassesByAsset assetId_ = do
   assetMap <- each assetClassMappingSchema
   where_ $ acmAssetId assetMap ==. assetId_
@@ -56,6 +80,7 @@ getAssetClassesByAsset assetId_ = do
   where_ $ assetClassId assetClass ==. acmAssetClassId assetMap
   return assetClass
 
+getAssetsByAssetClass :: AssetClassId -> Query (Asset Expr)
 getAssetsByAssetClass assetClassId_ = do
   assetMap <- each assetClassMappingSchema
   where_ $ acmAssetClassId assetMap ==. lit assetClassId_
@@ -63,6 +88,7 @@ getAssetsByAssetClass assetClassId_ = do
   where_ $ assetId asset ==. acmAssetId assetMap
   return asset
 
+insertAssetMapping :: AssetId -> AssetClassId -> Insert Int64
 insertAssetMapping assetId_ assetClassId_ =
   Insert
     { into = assetClassMappingSchema,
@@ -71,6 +97,7 @@ insertAssetMapping assetId_ assetClassId_ =
       returning = NumberOfRowsAffected
     }
 
+deleteAsset :: AssetId -> AssetClassId -> Delete Int64
 deleteAsset assetId_ assetClassId_ =
   Delete
     { from = assetClassMappingSchema,

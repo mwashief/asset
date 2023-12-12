@@ -11,16 +11,32 @@
 module Assets where
 
 import Asset
-import Control.Monad.IO.Class
-import Data.Aeson
-import Data.Int
-import Data.Text
-import GHC.Generics
-import GHC.IO.Handle
-import Hasql.Connection
-import Hasql.Session
-import Rel8 hiding (name)
+  ( AssetId (AssetId),
+    allAssets,
+    deleteAsset,
+    getAssetById,
+    insertAsset,
+  )
+import Control.Monad.IO.Class (MonadIO (liftIO))
+import Data.Aeson (FromJSON)
+import Data.Int (Int64)
+import Data.Text (Text)
+import GHC.Generics (Generic)
+import GHC.IO.Handle ()
+import Hasql.Connection (Connection)
+import Hasql.Session (run, statement)
+import Rel8 (delete, insert, select)
 import Web.Scotty
+  ( ActionM,
+    capture,
+    captureParam,
+    delete,
+    get,
+    json,
+    jsonData,
+    put,
+  )
+import qualified Web.Scotty.Internal.Types
 
 data AssetBody = AssetBody
   { name :: Text,
@@ -29,6 +45,7 @@ data AssetBody = AssetBody
   }
   deriving (Eq, Show, Generic, FromJSON)
 
+assetEndpoint :: String -> Connection -> Web.Scotty.Internal.Types.ScottyT IO ()
 assetEndpoint url connection = do
   get (capture url) $ do
     Right assets <- liftIO $ select_ allAssets

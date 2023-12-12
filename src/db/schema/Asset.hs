@@ -13,12 +13,31 @@
 
 module Asset where
 
-import AssetClass
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Int
-import Data.Text hiding (filter)
-import GHC.Generics
+import Data.Int (Int64)
+import Data.Text (Text)
+import GHC.Generics (Generic)
 import Rel8
+  ( Column,
+    DBEq,
+    DBType,
+    Delete (..),
+    Expr,
+    Insert (..),
+    Name,
+    OnConflict (Abort),
+    Query,
+    Rel8able,
+    Result,
+    Returning (NumberOfRowsAffected),
+    TableSchema (..),
+    each,
+    lit,
+    unsafeDefault,
+    values,
+    where_,
+    (==.),
+  )
 import Prelude hiding (filter, id)
 
 newtype AssetId = AssetId {toInt64 :: Int64}
@@ -53,14 +72,17 @@ assetSchema =
           }
     }
 
+allAssets :: Query (Asset Expr)
 allAssets =
   each assetSchema
 
+getAssetById :: AssetId -> Query (Asset Expr)
 getAssetById assetId_ = do
   asset <- each assetSchema
   where_ $ lit assetId_ ==. assetId asset
   return asset
 
+insertAsset :: Text -> Text -> Maybe Text -> Insert Int64
 insertAsset name unit desc =
   Insert
     { into = assetSchema,
@@ -69,6 +91,7 @@ insertAsset name unit desc =
       returning = NumberOfRowsAffected
     }
 
+deleteAsset :: AssetId -> Delete Int64
 deleteAsset assetId_ =
   Delete
     { from = assetSchema,

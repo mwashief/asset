@@ -11,14 +11,31 @@
 module Categories where
 
 import Category
-import Control.Monad.IO.Class
+  ( CategoryId (CategoryId),
+    allCategorys,
+    deleteCategory,
+    getCategoryById,
+    insertCategory,
+  )
+import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson (FromJSON (parseJSON), ToJSON, decode)
-import Data.Int
-import Data.Text
-import GHC.Generics
-import Hasql.Session
-import Rel8 hiding (name)
+import Data.Int (Int64)
+import Data.Text (Text)
+import GHC.Generics (Generic)
+import Hasql.Connection (Connection)
+import Hasql.Session (run, statement)
+import Rel8 (delete, insert, select)
 import Web.Scotty
+  ( ActionM,
+    capture,
+    captureParam,
+    delete,
+    get,
+    json,
+    jsonData,
+    put,
+  )
+import qualified Web.Scotty.Internal.Types
 
 data CategoryBody = CategoryBody
   { name :: Text,
@@ -26,6 +43,7 @@ data CategoryBody = CategoryBody
   }
   deriving (Eq, Show, Generic, FromJSON)
 
+categoryEndpoint :: String -> Connection -> Web.Scotty.Internal.Types.ScottyT IO ()
 categoryEndpoint url connection = do
   get (capture url) $ do
     Right categories <- liftIO $ select_ allCategorys

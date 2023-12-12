@@ -12,12 +12,29 @@
 
 module Transaction where
 
-import AssetDelta
+import AssetDelta (AssetDeltaId)
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Int
-import Data.Text hiding (filter)
-import GHC.Generics
+import GHC.Generics (Generic)
+import qualified GHC.Int
 import Rel8
+  ( Column,
+    Delete (Delete, deleteWhere, from, returning, using),
+    Expr,
+    Insert (Insert, into, onConflict, returning, rows),
+    Name,
+    OnConflict (Abort),
+    Query,
+    Rel8able,
+    Result,
+    Returning (NumberOfRowsAffected, Projection),
+    TableSchema (..),
+    Update (Update, from, returning, set, target, updateWhere),
+    each,
+    lit,
+    values,
+    (&&.),
+    (==.),
+  )
 import Prelude hiding (filter, id)
 
 data Transaction f = Transaction
@@ -45,9 +62,11 @@ transactionSchema =
           }
     }
 
+allTransactions :: Query (Transaction Expr)
 allTransactions =
   each transactionSchema
 
+insertTransaction :: AssetDeltaId -> AssetDeltaId -> Insert [AssetDeltaId]
 insertTransaction ldi rdi =
   Insert
     { into = transactionSchema,
@@ -56,6 +75,7 @@ insertTransaction ldi rdi =
       returning = Projection leftDeltaId
     }
 
+deleteTransaction :: AssetDeltaId -> AssetDeltaId -> Delete GHC.Int.Int64
 deleteTransaction ldi rdi =
   Delete
     { from = transactionSchema,
@@ -64,6 +84,7 @@ deleteTransaction ldi rdi =
       returning = NumberOfRowsAffected
     }
 
+updateTransactionLhs :: AssetDeltaId -> AssetDeltaId -> Update GHC.Int.Int64
 updateTransactionLhs prev new =
   Update
     { target = transactionSchema,
@@ -76,6 +97,7 @@ updateTransactionLhs prev new =
       returning = NumberOfRowsAffected
     }
 
+updateTransactionRhs :: AssetDeltaId -> AssetDeltaId -> Update GHC.Int.Int64
 updateTransactionRhs prev new =
   Update
     { target = transactionSchema,

@@ -14,18 +14,44 @@
 
 module AssetDelta where
 
-import Asset
-import AssetClass
-import AssetClassMapping
-import Category
+import Asset (Asset (assetId), AssetId)
+import AssetClass (AssetClassId)
+import AssetClassMapping (getAssetsByAssetClass)
+import Category (CategoryId)
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Functor.Apply
-import Data.Functor.Contravariant
-import Data.Int
-import Data.Text
-import Data.Time
-import GHC.Generics
+import Data.Functor.Contravariant ((>$<))
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (UTCTime)
+import GHC.Generics (Generic)
 import Rel8
+  ( Column,
+    DBEq,
+    DBType,
+    Expr,
+    Insert (..),
+    Name,
+    OnConflict (Abort),
+    Query,
+    Rel8able,
+    Result,
+    Returning (Projection),
+    TableSchema (TableSchema, columns, name, schema),
+    Update (..),
+    aggregate,
+    asc,
+    each,
+    lit,
+    orderBy,
+    sum,
+    unsafeDefault,
+    values,
+    where_,
+    (&&.),
+    (<=.),
+    (==.),
+    (>=.),
+  )
 
 newtype AssetDeltaId = AssetDeltaId {toInt64 :: Int64}
   deriving newtype (DBEq, DBType, Eq, Show, ToJSON, FromJSON)
@@ -47,6 +73,7 @@ instance ToJSON (AssetDelta Result)
 
 instance FromJSON (AssetDelta Result)
 
+assetDeltaSchema :: TableSchema (AssetDelta Name)
 assetDeltaSchema =
   TableSchema
     { name = "asset_delta",
@@ -62,6 +89,7 @@ assetDeltaSchema =
           }
     }
 
+insertAssetDelta :: UTCTime -> Double -> Maybe Text -> AssetId -> Maybe CategoryId -> Insert [AssetDeltaId]
 insertAssetDelta date delta desc assetId_ categoryId_ =
   Insert
     { into = assetDeltaSchema,
@@ -70,33 +98,40 @@ insertAssetDelta date delta desc assetId_ categoryId_ =
       returning = Projection assetDeltaId
     }
 
+getDeltaById :: AssetDeltaId -> Query (AssetDelta Expr)
 getDeltaById assetDeltaId_ = do
   assetDelta <- each assetDeltaSchema
   where_ $ assetDeltaId assetDelta ==. lit assetDeltaId_
   return assetDelta
 
+getDeltasByAsset :: Expr AssetId -> UTCTime -> UTCTime -> Query (AssetDelta Expr)
 getDeltasByAsset assetIdExpr startDate endDate = do
   assetDelta <- orderBy (date >$< asc) $ each assetDeltaSchema
   where_ $ adAssetId assetDelta ==. assetIdExpr &&. date assetDelta >=. lit startDate &&. date assetDelta <=. lit endDate
   return assetDelta
 
+getDeltas :: UTCTime -> UTCTime -> Query (AssetDelta Expr)
 getDeltas startDate endDate = do
   assetDelta <- orderBy (date >$< asc) $ each assetDeltaSchema
   where_ $ date assetDelta >=. lit startDate &&. date assetDelta <=. lit endDate
   return assetDelta
 
+getSum :: UTCTime -> UTCTime -> Query (Expr Double)
 getSum startDate endDate = aggregate do
   assetDelta <- getDeltas startDate endDate
   return $ Rel8.sum (delta assetDelta)
 
+getDeltasByAssetClass :: AssetClassId -> UTCTime -> UTCTime -> Query (AssetDelta Expr)
 getDeltasByAssetClass assetClassId_ startDate endDate = do
   asset <- getAssetsByAssetClass assetClassId_
   getDeltasByAsset (assetId asset) startDate endDate
 
+getSumByAsset :: Expr AssetId -> UTCTime -> UTCTime -> Query (Expr Double)
 getSumByAsset assetIdExpr startDate endDate = aggregate do
   assetDelta <- getDeltasByAsset assetIdExpr startDate endDate
   return $ Rel8.sum (delta assetDelta)
 
+updateAssetDelta :: AssetDeltaId -> UTCTime -> Double -> Maybe Text -> AssetId -> Maybe CategoryId -> Update [AssetDeltaId]
 updateAssetDelta assetDeltaId_ date_ delta_ adDesc_ adAssetId_ adCategoryId_ =
   Update
     { target = assetDeltaSchema,

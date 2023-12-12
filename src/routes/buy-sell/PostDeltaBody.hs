@@ -9,12 +9,12 @@
 
 module PostDeltaBody where
 
-import Asset
-import Category
-import Data.Aeson
-import Data.Text
-import Data.Time
-import GHC.Generics
+import Asset (AssetId)
+import Category (CategoryId)
+import Data.Aeson (FromJSON)
+import Data.Text (Text)
+import Data.Time (UTCTime)
+import GHC.Generics (Generic)
 
 data PostDeltaBody = DeltaPostBody
   { date :: Maybe UTCTime,

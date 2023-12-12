@@ -7,6 +7,7 @@
 
 module DbConnection where
 
-import Hasql.Connection
+import Hasql.Connection (Connection, ConnectionError, acquire, settings)
 
+getConnection :: IO (Either ConnectionError Connection)
 getConnection = acquire $ settings "localhost" 5432 "postgres" "postgres" "postgres"

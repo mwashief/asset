@@ -14,10 +14,30 @@
 module AssetClass where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Int
-import Data.Text hiding (filter)
-import GHC.Generics
+import Data.Int (Int64)
+import Data.Text (Text)
+import GHC.Generics (Generic)
 import Rel8
+  ( Column,
+    DBEq,
+    DBType,
+    Delete (..),
+    Expr,
+    Insert (..),
+    Name,
+    OnConflict (Abort),
+    Query,
+    Rel8able,
+    Result,
+    Returning (NumberOfRowsAffected),
+    TableSchema (..),
+    each,
+    lit,
+    unsafeDefault,
+    values,
+    where_,
+    (==.),
+  )
 import Prelude hiding (filter, id)
 
 newtype AssetClassId = AssetClassId {toInt64 :: Int64}
@@ -50,22 +70,33 @@ assetClassSchema =
           }
     }
 
+allAssetClasss :: Query (AssetClass Expr)
 allAssetClasss =
   each assetClassSchema
 
+getAssetClassById :: AssetClassId -> Query (AssetClass Expr)
 getAssetClassById assetClassId_ = do
   assetClass <- each assetClassSchema
   where_ $ lit assetClassId_ ==. assetClassId assetClass
   return assetClass
 
+insertAssetClass :: Text -> Maybe Text -> Insert Int64
 insertAssetClass name desc =
   Insert
     { into = assetClassSchema,
-      rows = values [AssetClass {assetClassId = unsafeDefault, assetClassName = lit name, assetClassDesc = lit desc}],
+      rows =
+        values
+          [ AssetClass
+              { assetClassId = unsafeDefault,
+                assetClassName = lit name,
+                assetClassDesc = lit desc
+              }
+          ],
       onConflict = Abort,
       returning = NumberOfRowsAffected
     }
 
+deleteAssetClass :: AssetClassId -> Delete Int64
 deleteAssetClass assetClassId_ =
   Delete
     { from = assetClassSchema,

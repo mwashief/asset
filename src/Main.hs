@@ -1,29 +1,13 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE PolyKinds #-}
 
 module Main where
 
-import Assets
-import BuySell
-import Categories
-import Control.Monad.IO.Class
-import Data.Aeson (FromJSON, ToJSON)
-import Data.Monoid ((<>))
-import Data.Text.Lazy
-import DbConnection
-import GHC.Generics
-import Hasql.Connection
-import Hasql.Session
-import Rel8
-import Web.Scotty
-
--- * api
-
-data Point = Point {x :: Int, y :: Int} deriving (Generic, Show)
-
-instance ToJSON Point
-
-instance FromJSON Point
+import Assets (assetEndpoint)
+import BuySell (buySellEndpoint)
+import Categories (categoryEndpoint)
+import DbConnection (getConnection)
+import Hasql.Connection (Connection)
+import Web.Scotty (ScottyM, scotty)
 
 assetManagement :: Connection -> ScottyM ()
 assetManagement connection = do

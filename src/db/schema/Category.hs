@@ -14,10 +14,30 @@
 module Category where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Int
-import Data.Text hiding (filter)
-import GHC.Generics
+import Data.Int (Int64)
+import Data.Text (Text)
+import GHC.Generics (Generic)
 import Rel8
+  ( Column,
+    DBEq,
+    DBType,
+    Delete (..),
+    Expr,
+    Insert (..),
+    Name,
+    OnConflict (Abort),
+    Query,
+    Rel8able,
+    Result,
+    Returning (NumberOfRowsAffected),
+    TableSchema (..),
+    each,
+    lit,
+    unsafeDefault,
+    values,
+    where_,
+    (==.),
+  )
 import Prelude hiding (filter, id)
 
 newtype CategoryId = CategoryId {toInt64 :: Int64}
@@ -50,14 +70,17 @@ categorySchema =
           }
     }
 
+allCategorys :: Query (Category Expr)
 allCategorys =
   each categorySchema
 
+getCategoryById :: CategoryId -> Query (Category Expr)
 getCategoryById categoryId_ = do
   category <- each categorySchema
   where_ $ lit categoryId_ ==. categoryId category
   return category
 
+insertCategory :: Text -> Maybe Text -> Insert Int64
 insertCategory name desc =
   Insert
     { into = categorySchema,
@@ -66,6 +89,7 @@ insertCategory name desc =
       returning = NumberOfRowsAffected
     }
 
+deleteCategory :: CategoryId -> Delete Int64
 deleteCategory categoryId_ =
   Delete
     { from = categorySchema,
