@@ -1,4 +1,7 @@
+![asset-logo](https://github.com/mwashief/asset/assets/33695958/cd2c9ba6-9236-4c8b-aad5-2f3c84f88fa2)
+A simple parsonal asset management tool.
 # How to run:
+
 ## DB setup
 - Install PostGresql on your machine.
 - After installing PostGres, a new user will be created on the machine named 'postgres'
