@@ -61,3 +61,90 @@ COMMENT
 
 COMMENT
     ON COLUMN asset_management.asset_delta.delta IS 'What is the change of this asset';
+
+INSERT INTO
+    asset_management.asset_class (
+        asset_class_name,
+        asset_class_description
+    )
+VALUES ('currency', 'Liquid fiat'), ('crypto', 'Crypto currency'), ('stock', 'Equity share'), ('bond', 'Fixed income'), (
+        'commodity',
+        'Basic goods that can be transformed into other goods and services'
+    ), ('nft', 'Non-fungible token')
+
+WITH currency_asset_id AS (
+        INSERT INTO
+            asset_management.asset (
+                asset_name,
+                unit,
+                asset_description
+            )
+        VALUES (
+                'Taka',
+                'BDT',
+                'Bangladeshi taka'
+            ), (
+                'Pound',
+                'GBP',
+                'British pound'
+            ), (
+                'US Dollar',
+                'USD',
+                'United States dollar'
+            )
+        RETURNING asset_id
+    )
+
+INSERT INTO
+    asset_management.asset_class_mapping(asset_id, asset_class_id)
+SELECT *
+FROM currency_asset_id B
+    JOIN (
+        SELECT asset_class_id
+        FROM
+            asset_management.asset_class
+        WHERE
+            asset_class_name = 'currency'
+    ) A ON TRUE
+
+WITH crypto_asset_id AS (
+        INSERT INTO
+            asset_management.asset (asset_name, unit)
+        VALUES ('Bitcoin', 'BTC'), ('Ethereum', 'ETH'), ('Cardano', 'ADA')
+        RETURNING asset_id
+    )
+
+INSERT INTO
+    asset_management.asset_class_mapping(asset_id, asset_class_id)
+SELECT *
+FROM crypto_asset_id B
+    JOIN (
+        SELECT asset_class_id
+        FROM
+            asset_management.asset_class
+        WHERE
+            asset_class_name = 'crypto'
+    ) A ON TRUE
+
+WITH comodity_asset_id AS (
+        INSERT INTO
+            asset_management.asset (asset_name, unit)
+        VALUES ('Gold', 'gm')
+        RETURNING asset_id
+    )
+
+INSERT INTO
+    asset_management.asset_class_mapping(asset_id, asset_class_id)
+SELECT *
+FROM comodity_asset_id B
+    JOIN (
+        SELECT asset_class_id
+        FROM
+            asset_management.asset_class
+        WHERE
+            asset_class_name = 'commodity'
+    ) A ON TRUE
+
+INSERT INTO
+    asset_management.category(category_name)
+VALUES ('Gym'), ('Transport'), ('Food'), ('Health'), ('Skin-care'), ('Clothing'), ('Bill'), ('Rent'), ('Bad-egg')
