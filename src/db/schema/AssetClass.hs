@@ -38,6 +38,7 @@ import Rel8
     where_,
     (==.),
   )
+import Schema (assetManagementSchema)
 import Prelude hiding (filter, id)
 
 newtype AssetClassId = AssetClassId {toInt64 :: Int64}
@@ -61,7 +62,7 @@ assetClassSchema :: TableSchema (AssetClass Name)
 assetClassSchema =
   TableSchema
     { name = "assetClass",
-      schema = Nothing,
+      schema = assetManagementSchema,
       columns =
         AssetClass
           { assetClassId = "asset_class_id",

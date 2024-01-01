@@ -41,6 +41,7 @@ import Rel8
     (&&.),
     (==.),
   )
+import Schema (assetManagementSchema)
 import Prelude hiding (filter, id)
 
 data AssetClassMapping f = AssetClassMapping
@@ -60,7 +61,7 @@ assetClassMappingSchema :: TableSchema (AssetClassMapping Name)
 assetClassMappingSchema =
   TableSchema
     { name = "asset_class_mapping",
-      schema = Nothing,
+      schema = assetManagementSchema,
       columns =
         AssetClassMapping
           { acmAssetClassId = "asset_class_id",

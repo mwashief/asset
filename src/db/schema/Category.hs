@@ -38,6 +38,7 @@ import Rel8
     where_,
     (==.),
   )
+import Schema (assetManagementSchema)
 import Prelude hiding (filter, id)
 
 newtype CategoryId = CategoryId {toInt64 :: Int64}
@@ -61,7 +62,7 @@ categorySchema :: TableSchema (Category Name)
 categorySchema =
   TableSchema
     { name = "category",
-      schema = Nothing,
+      schema = assetManagementSchema,
       columns =
         Category
           { categoryId = "category_id",

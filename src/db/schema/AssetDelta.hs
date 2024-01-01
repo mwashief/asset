@@ -52,6 +52,7 @@ import Rel8
     (==.),
     (>=.),
   )
+import Schema (assetManagementSchema)
 
 newtype AssetDeltaId = AssetDeltaId {toInt64 :: Int64}
   deriving newtype (DBEq, DBType, Eq, Show, ToJSON, FromJSON)
@@ -77,7 +78,7 @@ assetDeltaSchema :: TableSchema (AssetDelta Name)
 assetDeltaSchema =
   TableSchema
     { name = "asset_delta",
-      schema = Nothing,
+      schema = assetManagementSchema,
       columns =
         AssetDelta
           { assetDeltaId = "asset_delta_id",

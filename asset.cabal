@@ -58,5 +58,6 @@ executable asset
         Category,
         DbConnection,
         PostDeltaBody,
+        Schema,
         Transaction
     default-language: Haskell2010

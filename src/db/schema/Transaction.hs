@@ -35,6 +35,7 @@ import Rel8
     (&&.),
     (==.),
   )
+import Schema (assetManagementSchema)
 import Prelude hiding (filter, id)
 
 data Transaction f = Transaction
@@ -54,7 +55,7 @@ transactionSchema :: TableSchema (Transaction Name)
 transactionSchema =
   TableSchema
     { name = "transaction",
-      schema = Nothing,
+      schema = assetManagementSchema,
       columns =
         Transaction
           { leftDeltaId = "left_delta_id",
